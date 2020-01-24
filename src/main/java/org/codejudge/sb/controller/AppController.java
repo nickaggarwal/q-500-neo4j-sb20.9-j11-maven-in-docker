@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppController {
 
     @ApiOperation("This is the hello world api")
-    @GetMapping("/hello")
+    @GetMapping("/")
     public String hello() {
         return "Hello World!!";
     }
