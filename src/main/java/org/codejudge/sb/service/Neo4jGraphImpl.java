@@ -8,6 +8,7 @@ import org.springframework.util.FileSystemUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,14 +18,14 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 public class Neo4jGraphImpl implements Neo4jGraph{
 
     private GraphDatabaseService graphDb;
-    private static final File databaseDirectory = new File( "target/java-query-db" );
+    private static final File databaseDirectory = new File( "CodeGraph" );
     private Transaction tx;
 
     public Neo4jGraphImpl(){
-        clearDbPath();
+        //clearDbPath();
         DatabaseManagementService managementService = new DatabaseManagementServiceBuilder( databaseDirectory ).build();
-        this.graphDb = managementService.database( DEFAULT_DATABASE_NAME );
-        populateData();
+        this.graphDb = managementService.database( "neo4j" );
+        //populateData();
     }
 
     @Override
@@ -35,7 +36,7 @@ public class Neo4jGraphImpl implements Neo4jGraph{
             n1.setProperty(entry.getKey(), entry.getValue());
         }
         GraphNode graphNode = new GraphNode();
-        graphNode.setName(name);
+        graphNode.setLabel(name);
         graphNode.setNodeId(n1.getId());
         tx.commit();
         return graphNode;
@@ -47,7 +48,6 @@ public class Neo4jGraphImpl implements Neo4jGraph{
         Node n1 = tx.getNodeById(nodeId1);
         Node n2 = tx.getNodeById(nodeId2);
         n1.createRelationshipTo(n2, RelationshipType.withName(type));
-
         tx.commit();
     }
 
@@ -56,13 +56,23 @@ public class Neo4jGraphImpl implements Neo4jGraph{
         tx = this.graphDb.beginTx();
         List<GraphNode> resultNodes = new ArrayList<>();
         Result result = tx.execute(cyperQuery);
+        List< Map< String, String> > keyvals = new ArrayList<>();
         while (result.hasNext()){
             Map<String, Object> row = result.next();
+            Map<String, String> hashmap = new HashMap<>();
             for ( Map.Entry<String,Object> column : row.entrySet() ){
-                Node node = (Node)column.getValue();
-                GraphNode graphNode = new GraphNode();
-                graphNode.setName((String) node.getProperty("name"));
-                resultNodes.add(graphNode);
+
+                if(column.getValue() instanceof Node) {
+                    Node node = (Node) column.getValue();
+                    GraphNode graphNode = new GraphNode();
+                    Iterable<Label> labels = node.getLabels();
+                    for (Label label : labels) {
+                        graphNode.setLabel(label.name());
+                    }
+                    resultNodes.add(graphNode);
+                }else if (column.getValue() instanceof String) {
+                    hashmap.put(column.getKey(), (String) column.getValue());
+                }
             }
         }
         tx.commit();

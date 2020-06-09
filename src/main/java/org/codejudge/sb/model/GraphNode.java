@@ -6,6 +6,9 @@ import lombok.Data;
 public class GraphNode {
 
     Long nodeId;
-    String name;
+    String shortname;
     String label;
+    String astkind;
+    String longname;
+    String file;
 }

@@ -29,9 +29,9 @@ public class AppController {
     public List<String> getAllNodes() {
         this.neo4jGraph = new Neo4jGraphImpl();
         List<String> names = new ArrayList<>();
-        List<GraphNode> res = this.neo4jGraph.getResult("MATCH (n {name: 'Foo'}) RETURN n");
+        List<GraphNode> res = this.neo4jGraph.getResult("MATCH (method:MethodDeclaration)-[r]->(someChild) RETURN method, properties(method), labels(method), type(r), id(someChild), labels(someChild) LIMIT 10;");
         for(GraphNode node : res){
-            String name = node.getName();
+            String name = node.getLabel();
             names.add(name);
         }
         return names;
