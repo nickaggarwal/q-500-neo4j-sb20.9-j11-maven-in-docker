@@ -80,7 +80,12 @@ public class Neo4jGraphImpl implements Neo4jGraph{
                     graphNode.setNodeId(node.getId());
                     nodes.add(graphNode);
                 }else {
-                    hashmap.put(column.getKey(), column.getValue().toString());
+                    if(column.getValue() == null){
+                        hashmap.put(column.getKey(),"null");
+                    }else{
+                        hashmap.put(column.getKey().replace(".", "_"), column.getValue().toString());
+                    }
+
                 }
             }
 
