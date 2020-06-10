@@ -1,9 +1,11 @@
 package org.codejudge.sb.service;
 
 import org.codejudge.sb.model.GraphNode;
+import org.codejudge.sb.model.GraphResult;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.graphdb.*;
+import org.neo4j.kernel.impl.core.NodeEntity;
 import org.springframework.util.FileSystemUtils;
 
 import java.io.File;
@@ -11,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
@@ -52,28 +55,38 @@ public class Neo4jGraphImpl implements Neo4jGraph{
     }
 
     @Override
-    public List<GraphNode> getResult(String cyperQuery) {
+    public List<GraphResult> getResult(String cyperQuery) {
         tx = this.graphDb.beginTx();
-        List<GraphNode> resultNodes = new ArrayList<>();
+        List<GraphResult> resultNodes = new ArrayList<>();
         Result result = tx.execute(cyperQuery);
-        List< Map< String, String> > keyvals = new ArrayList<>();
         while (result.hasNext()){
             Map<String, Object> row = result.next();
+            GraphResult rowResult = new GraphResult();
+
             Map<String, String> hashmap = new HashMap<>();
+            List<GraphNode> nodes = new ArrayList<>();
+
             for ( Map.Entry<String,Object> column : row.entrySet() ){
 
-                if(column.getValue() instanceof Node) {
+                if(column.getValue() instanceof NodeEntity) {
                     Node node = (Node) column.getValue();
                     GraphNode graphNode = new GraphNode();
                     Iterable<Label> labels = node.getLabels();
                     for (Label label : labels) {
                         graphNode.setLabel(label.name());
+
                     }
-                    resultNodes.add(graphNode);
-                }else if (column.getValue() instanceof String) {
-                    hashmap.put(column.getKey(), (String) column.getValue());
+                    graphNode.setFile((String)node.getProperty("file"));
+                    graphNode.setNodeId(node.getId());
+                    nodes.add(graphNode);
+                }else {
+                    hashmap.put(column.getKey(), column.getValue().toString());
                 }
             }
+
+            rowResult.setNodes(nodes);
+            rowResult.setRows(hashmap);
+            resultNodes.add(rowResult);
         }
         tx.commit();
         return resultNodes;
@@ -93,5 +106,23 @@ public class Neo4jGraphImpl implements Neo4jGraph{
         GraphNode n2 = createNode("CLASS", Map.of("name", "Bar"));
         createRelationship(n1.getNodeId(),n2.getNodeId(), "IMPORTS");
 
+    }
+
+    public List<Map<String, String>> serialze(List<GraphResult> results){
+        List<Map<String, String> > resultRows = new ArrayList<>();
+        for(GraphResult resultRow : results){
+            Map<String, String> hashmap = new HashMap<>();
+            List<String> nodeIds = new ArrayList();
+            for( GraphNode node : resultRow.getNodes() )
+            {
+                nodeIds.add(node.getNodeId().toString());
+            }
+            String nodeCommaSeperated = nodeIds.stream().collect(Collectors.joining(","));
+
+            hashmap.put("node_ids", nodeCommaSeperated);
+            hashmap.putAll(resultRow.getRows());
+            resultRows.add(hashmap);
+        }
+        return resultRows;
     }
 }
