@@ -22,6 +22,12 @@ public class AppController {
 
     private Neo4jGraphImpl neo4jGraph;
 
+    private Neo4jGraphImpl getNeoInstance(){
+        if(this.neo4jGraph == null){
+            this.neo4jGraph = new Neo4jGraphImpl();
+        }
+        return this.neo4jGraph;
+    }
 
     @ApiOperation("This is the hello world api")
     @GetMapping("/")
@@ -31,7 +37,7 @@ public class AppController {
 
     @GetMapping("/get-nodes-for-method-declaration")
     public List<Map<String, String>> getAllNodeForMethodDeclaraion() {
-        this.neo4jGraph = new Neo4jGraphImpl();
+        this.neo4jGraph = this.getNeoInstance();
         String cypherQuery = "MATCH (method:MethodDeclaration)-[r]->(someChild) RETURN method, properties(method), labels(method), type(r), id(someChild), labels(someChild) LIMIT 10;";
         List<GraphResult> results = this.neo4jGraph.getResult(cypherQuery);
         return this.neo4jGraph.serialze(results);
@@ -39,7 +45,7 @@ public class AppController {
 
     @GetMapping("/get-nodes-for-class-interface")
     public List<Map<String, String>> getNodesForClassandInterface() {
-        this.neo4jGraph = new Neo4jGraphImpl();
+        this.neo4jGraph = this.getNeoInstance();
         String cypherQuery = "MATCH (type:TypeDeclaration)-[:child]->()-[:child]->(name:TerminalNode{symbol:\"IDENTIFIER\"}) RETURN type.file, type.startline, type.startcol, type.longname, name.token LIMIT 25";
         List<GraphResult> results = this.neo4jGraph.getResult(cypherQuery);
         return this.neo4jGraph.serialze(results);
