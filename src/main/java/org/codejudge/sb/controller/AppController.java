@@ -36,19 +36,23 @@ public class AppController {
     }
 
     @GetMapping("/get-nodes-for-method-declaration")
-    public List<Map<String, String>> getAllNodeForMethodDeclaraion() {
+    public Map<String, List<Map<String, String>>>getAllNodeForMethodDeclaraion() {
         this.neo4jGraph = this.getNeoInstance();
-        String cypherQuery = "MATCH (method:MethodDeclaration)-[r]->(someChild) RETURN method, properties(method), labels(method), type(r), id(someChild), labels(someChild) LIMIT 10;";
+        String cypherQuery = "MATCH (method:MethodDeclaration)-[r]->(someChild) RETURN method, properties(method), labels(method), type(r), id(someChild), someChild.astkind LIMIT 10;";
         List<GraphResult> results = this.neo4jGraph.getResult(cypherQuery);
-        return this.neo4jGraph.serialze(results);
+        Map<String, List<Map<String, String>> > res = new HashMap<>();
+        res.put("result", this.neo4jGraph.serialze(results));
+        return res;
     }
 
     @GetMapping("/get-nodes-for-class-interface")
-    public List<Map<String, String>> getNodesForClassandInterface() {
+    public Map<String, List<Map<String, String>>> getNodesForClassandInterface() {
         this.neo4jGraph = this.getNeoInstance();
         String cypherQuery = "MATCH (type:TypeDeclaration)-[:child]->()-[:child]->(name:TerminalNode{symbol:\"IDENTIFIER\"}) RETURN type.file, type.startline, type.startcol, type.longname, name.token LIMIT 25";
         List<GraphResult> results = this.neo4jGraph.getResult(cypherQuery);
-        return this.neo4jGraph.serialze(results);
+        Map<String, List<Map<String, String>> > res = new HashMap<>();
+        res.put("result", this.neo4jGraph.serialze(results));
+        return res;
     }
 
 }
